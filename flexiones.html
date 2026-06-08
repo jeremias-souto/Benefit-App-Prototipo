@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push-Up AI Tracker v0.1</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --verde-agua: #7cd1b8;
+            --verde-agua-oscuro: #5bb39a;
+            --blanco: #ffffff;
+            --gris-oscuro: #2b2b2b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--verde-agua);
+            color: var(--gris-oscuro);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        /* Versión en la esquina superior derecha */
+        .version {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            background-color: rgba(255, 255, 255, 0.4);
+            padding: 2px 8px;
+            border-radius: 5px;
+        }
+
+        /* Contenedor Principal */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .descripcion {
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            max-width: 600px;
+            font-weight: 500;
+        }
+
+        /* Contenedor de la cámara y canvas */
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 720px;
+            aspect-ratio: 4/3;
+            background-color: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border: 4px solid var(--blanco);
+        }
+
+        /* Ocultamos el video nativo, procesamos sobre el canvas */
+        video {
+            display: none;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Efecto espejo */
+        }
+
+        /* HUD del contador e instrucciones en pantalla */
+        .hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 1.1rem;
+            pointer-events: none;
+        }
+
+        /* Pantalla de éxito finalizado */
+        .overlay-success {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .overlay-success h2 {
+            font-size: 2rem;
+            color: #4ade80;
+            margin-bottom: 15px;
+        }
+
+        /* Footer */
+        footer {
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .social-links a {
+            color: var(--gris-oscuro);
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .social-links a:hover {
+            color: var(--blanco);
+        }
+
+        .btn-donar {
+            background-color: var(--gris-oscuro);
+            color: var(--blanco);
+            border: none;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .btn-donar:hover {
+            background-color: #444;
+            transform: scale(1.05);
+        }
+
+        .copyright {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        /* RESPONSIVIDAD (Tablets y Mobiles) */
+        @media (min-width: 768px) {
+            .footer-content {
+                flex-direction: row;
+                justify-content: space-between;
+                max-width: 1000px;
+                margin: 0 auto;
+            }
+            h1 { font-size: 3rem; }
+        }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 2rem; }
+            .descripcion { font-size: 1rem; }
+            .camera-container { border-radius: 0; border-left: none; border-right: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="version">v0.1</div>
+
+    <main>
+        <h1>FLEXIONES AI TRACKER</h1>
+        <p class="descripcion">Párate de perfil derecho frente a la cámara. Flexiona los brazos hasta que el ángulo de tu codo sea menor a 95° para completar una repetición.</p>
+
+        <div class="camera-container">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="output_canvas"></canvas>
+            
+            <div class="hud">
+                <div>Reps: <span id="counter-txt">0</span> / 6</div>
+                <div>Ángulo: <span id="angle-txt">0°</span></div>
+                <div>Estado: <span id="state-txt">Arriba</span></div>
+            </div>
+
+            <div id="success-screen" class="overlay-success">
+                <h2 style="color:#4ade80;">¡Buen trabajo!</h2>
+                <p>Entrenamiento finalizado con éxito.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="social-links">
+                <a href="#" target="_blank">Twitter</a>
+                <a href="#" target="_blank">Instagram</a>
+                <a href="#" target="_blank">TikTok</a>
+            </div>
+            <button class="btn-donar">Donar</button>
+            <div class="copyright">&copy; 2026 Benefit App. Todos los derechos reservados.</div>
+        </div>
+    </footer>
+
+    <script type="module">
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const counterTxt = document.getElementById('counter-txt');
+        const angleTxt = document.getElementById('angle-txt');
+        const stateTxt = document.getElementById('state-txt');
+        const successScreen = document.getElementById('success-screen');
+
+        let contador = 0;
+        let maxReps = 6;
+        let estado = "arriba"; 
+        let finalizado = false;
+
+        function calcularAngulo(p1, p2, p3) {
+            let radians = Math.atan2(p3.y - p2.y, p3.x - p2.x) - Math.atan2(p1.y - p2.y, p1.x - p2.x);
+            let angle = Math.abs((radians * 180.0) / Math.PI);
+            return angle > 180.0 ? 360.0 - angle : angle;
+        }
+
+        function onResults(results) {
+            if (finalizado) return;
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.poseLandmarks) {
+                // Puntos: Hombro Derecho (12), Codo Derecho (14), Muñeca Derecha (16)
+                const shoulder = results.poseLandmarks[12];
+                const elbow = results.poseLandmarks[14];
+                const wrist = results.poseLandmarks[16];
+
+                if (shoulder.visibility > 0.5 && elbow.visibility > 0.5 && wrist.visibility > 0.5) {
+                    const angulo = Math.round(calcularAngulo(shoulder, elbow, wrist));
+                    angleTxt.innerText = `${angulo}°`;
+
+                    // Lógica: Si el ángulo es < 95° está "abajo" (brazo flexionado)
+                    if (angulo < 95 && estado === "arriba") {
+                        estado = "abajo";
+                        stateTxt.innerText = "Abajo";
+                    }
+                    
+                    // Si el ángulo vuelve a ser > 145° está "arriba" (brazo extendido)
+                    if (angulo > 145 && estado === "abajo") {
+                        estado = "arriba";
+                        stateTxt.innerText = "Arriba";
+                        contador++;
+                        counterTxt.innerText = contador;
+                        if (contador >= maxReps) {
+                            finalizado = true;
+                            successScreen.style.display = 'flex';
+                        }
+                    }
+
+                    // Dibujar el brazo derecho
+                    canvasCtx.strokeStyle = '#ffffff';
+                    canvasCtx.lineWidth = 5;
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(shoulder.x * canvasElement.width, shoulder.y * canvasElement.height);
+                    canvasCtx.lineTo(elbow.x * canvasElement.width, elbow.y * canvasElement.height);
+                    canvasCtx.lineTo(wrist.x * canvasElement.width, wrist.y * canvasElement.height);
+                    canvasCtx.stroke();
+
+                    // Puntos naranjas
+                    [shoulder, elbow, wrist].forEach(p => {
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(p.x * canvasElement.width, p.y * canvasElement.height, 6, 0, 2*Math.PI);
+                        canvasCtx.fillStyle = '#ff5722';
+                        canvasCtx.fill();
+                    });
+                }
+            }
+            canvasCtx.restore();
+        }
+
+        const pose = new Pose({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
+        pose.setOptions({ modelComplexity: 1, minDetectionConfidence: 0.5 });
+        pose.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => { await pose.send({image: videoElement}); },
+            width: 640, height: 480
+        });
+        camera.start();
+    </script>
+</body>
+</html>

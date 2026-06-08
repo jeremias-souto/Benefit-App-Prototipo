@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benefit App</title>
+    <style>
+        :root {
+            --verde-agua: #7cd1b8;
+            --verde-agua-oscuro: #5bb39a;
+            --blanco: #ffffff;
+            --gris-oscuro: #2b2b2b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--verde-agua);
+            color: var(--gris-oscuro);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        /* Versión en la esquina superior derecha */
+        .version {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            background-color: rgba(255, 255, 255, 0.4);
+            padding: 2px 8px;
+            border-radius: 5px;
+        }
+
+        /* Contenedor Principal */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 800;
+        }
+
+        .descripcion {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            max-width: 600px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        /* Contenedor de Botones (Menú) */
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        /* Estilo de los Botones de Ejercicios */
+        .btn-ejercicio {
+            background-color: var(--blanco);
+            color: var(--gris-oscuro);
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 18px 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-ejercicio:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            background-color: #f8f8f8;
+        }
+
+        .btn-ejercicio:active {
+            transform: translateY(-1px);
+        }
+
+        /* Footer */
+        footer {
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .social-links a {
+            color: var(--gris-oscuro);
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .social-links a:hover {
+            color: var(--blanco);
+        }
+
+        .btn-donar {
+            background-color: var(--gris-oscuro);
+            color: var(--blanco);
+            border: none;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .btn-donar:hover {
+            background-color: #444;
+            transform: scale(1.05);
+        }
+
+        .copyright {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        /* RESPONSIVIDAD (Tablets y Mobiles) */
+        @media (min-width: 768px) {
+            .footer-content {
+                flex-direction: row;
+                justify-content: space-between;
+                max-width: 1000px;
+                margin: 0 auto;
+            }
+
+            h1 {
+                font-size: 4rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2.8rem;
+            }
+
+            .descripcion {
+                font-size: 1.1rem;
+            }
+
+            .menu-container {
+                padding: 0 10px;
+            }
+
+            .btn-ejercicio {
+                padding: 15px 20px;
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="version">v0.1</div>
+
+    <main>
+        <h1>Benefit App</h1>
+        <p class="descripcion">La salud es lo primero!</p>
+
+        <div class="menu-container">
+            <a href="sentadillas.html" class="btn-ejercicio">Sentadillas</a>
+            <a href="abdominales.html" class="btn-ejercicio">Abdominales</a>
+            <a href="flexiones.html" class="btn-ejercicio">Flexiones de Brazos</a>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="social-links">
+                <a href="#" target="_blank">Twitter</a>
+                <a href="#" target="_blank">Instagram</a>
+                <a href="#" target="_blank">TikTok</a>
+            </div>
+            <button class="btn-donar">Donar</button>
+            <div class="copyright">&copy; 2026 Benefit App. Todos los derechos reservados.</div>
+        </div>
+    </footer>
+
+</body>
+
+</html>
