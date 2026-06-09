@@ -221,14 +221,14 @@
 
     <main>
         <h1>ABDOMINALES AI TRACKER</h1>
-        <p class="descripcion">Párate de perfil derecho frente a la cámara. Levanta el torso hasta que el ángulo de tu cadera sea menor a 50° para completar una repetición.</p>
+        <p class="descripcion">Párate de perfil derecho frente a la cámara. Levanta el torso hasta que el ángulo de tu cadera sea menor a 105° para completar una repetición.</p>
 
         <div class="camera-container">
             <video id="webcam" autoplay playsinline></video>
             <canvas id="output_canvas"></canvas>
             
             <div class="hud">
-                <div>Reps: <span id="counter-txt">0</span> / 6</div>
+                <div>Reps: <span id="counter-txt">0</span> / 10</div>
                 <div>Ángulo: <span id="angle-txt">0°</span></div>
                 <div>Estado: <span id="state-txt">Arriba</span></div>
             </div>
@@ -243,11 +243,11 @@
     <footer>
         <div class="footer-content">
             <div class="social-links">
-                <a href="#" target="_blank">Twitter</a>
-                <a href="#" target="_blank">Instagram</a>
-                <a href="#" target="_blank">TikTok</a>
+                <a href="https://x.com/Jere_Souto" target="_blank">Twitter</a>
+                <a href="https://www.instagram.com/jere_souto/" target="_blank">Instagram</a>
+                <a href="https://www.linkedin.com/in/jeremias-souto-6b07752a5/" target="_blank">Linkedin</a>
             </div>
-            <button class="btn-donar">Donar</button>
+            <a href="https://mpago.la/1u995zP" target="_blank"><button class="btn-donar">Donar</button></a>
             <div class="copyright">&copy; 2026 Benefit App. Todos los derechos reservados.</div>
         </div>
     </footer>
@@ -262,7 +262,7 @@
         const successScreen = document.getElementById('success-screen');
 
         let contador = 0;
-        let maxReps = 6;
+        let maxReps = 10;
         let estado = "abajo"; // En abdominales empezamos acostados ("abajo")
         let finalizado = false;
 
@@ -291,14 +291,14 @@
                     const angulo = Math.round(calcularAngulo(shoulder, hip, knee));
                     angleTxt.innerText = `${angulo}°`;
 
-                    // Lógica: Si el ángulo es < 60° está "arriba" (torso cerca de rodillas)
-                    if (angulo < 60 && estado === "abajo") {
+                    // Lógica: Si el ángulo es < 105° está "arriba" (torso cerca de rodillas)
+                    if (angulo < 105 && estado === "abajo") {
                         estado = "arriba";
                         stateTxt.innerText = "Arriba";
                     }
                     
-                    // Si el ángulo vuelve a ser > 100° está "abajo" (acostado) y sumamos rep
-                    if (angulo > 100 && estado === "arriba") {
+                    // Si el ángulo vuelve a ser > 115° está "abajo" (acostado) y sumamos rep
+                    if (angulo > 115 && estado === "arriba") {
                         estado = "abajo";
                         contador++;
                         counterTxt.innerText = contador;
@@ -317,6 +317,14 @@
                     canvasCtx.lineTo(hip.x * canvasElement.width, hip.y * canvasElement.height);
                     canvasCtx.lineTo(knee.x * canvasElement.width, knee.y * canvasElement.height);
                     canvasCtx.stroke();
+
+                    // Puntos naranjas
+                    [shoulder, hip, knee].forEach(p => {
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(p.x * canvasElement.width, p.y * canvasElement.height, 6, 0, 2*Math.PI);
+                        canvasCtx.fillStyle = '#ff5722';
+                        canvasCtx.fill();
+                    });
                 }
             }
             canvasCtx.restore();
