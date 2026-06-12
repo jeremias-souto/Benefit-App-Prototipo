@@ -217,18 +217,21 @@
         const stateTxt = document.getElementById('state-txt');
 
         const OBJETIVO_KM = 1.00;
+        const UMBRAL_ACCESIBILIDAD_KM = 0.004; // 4 metros
+        const CONTROL_FRECUENCIA_MS = 6000; // 6 segundos
         let distanciaTotal = 0.0;
         let ultimaPosicion = null;
         let coordenadasRecorrido = [];
         let finalizado = false;
 
-        // Variables del Cronómetro
+        // Variables de Control de Tiempo y Frecuencia
         let segundosTranscurridos = 0;
         let timerInterval = null;
+        let ultimoTiempoCalculado = 0; // Almacena el timestamp del último cálculo válido
 
-        // 1. Inicializar el Mapa centrado por defecto
+        // 1. Inicializar el Mapa de Leaflet
         const map = L.map('map').setView([0, 0], 2);
-        
+
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap'
         }).addTo(map);
@@ -236,7 +239,7 @@
         const polilinea = L.polyline([], { color: '#ff5722', weight: 5 }).addTo(map);
         const marcadorUsuario = L.marker([0, 0]).addTo(map);
 
-        // 2. Formatear segundos a MM:SS
+        // 2. Formatear y actualizar el Cronómetro (MM:SS)
         function actualizarCronometro() {
             if (finalizado) return;
             segundosTranscurridos++;
@@ -245,58 +248,71 @@
             timeTxt.innerText = `${minutos}:${segundos}`;
         }
 
-        // 3. Fórmula matemática para calcular distancia real (Haversine)
+        // 3. Fórmula de Haversine para calcular distancia real entre coordenadas GPS
         function calcularDistanciaEntrePuntos(lat1, lon1, lat2, lon2) {
-            const R = 6371; 
+            const R = 6371; // Radio de la Tierra en km
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             return R * c; 
         }
 
-        // 4. Procesar nueva posición
+        // 4. Procesar y filtrar la nueva posición del GPS
         function actualizarProgreso(lat, lon, velocidadGPS = null) {
             if (finalizado) return;
 
-            // Iniciar el cronómetro en el primer movimiento registrado
+            const ahora = Date.now(); // Tiempo actual en milisegundos
+            const nuevaPos = [lat, lon];
+
+            // Iniciar el cronómetro e igualar el tiempo de control en el primer paso real
             if (!timerInterval) {
                 timerInterval = setInterval(actualizarCronometro, 1000);
                 stateTxt.innerText = "En marcha";
+                ultimoTiempoCalculado = ahora;
             }
 
-            const nuevaPos = [lat, lon];
-            
             if (ultimaPosicion) {
-                const tramo = calcularDistanciaEntrePuntos(ultimaPosicion[0], ultimaPosicion[1], lat, lon);
-                
-                // Filtro para ignorar ruido estático del GPS
-                if (tramo > 0.002) { 
-                    distanciaTotal += tramo;
-                    distanceTxt.innerText = distanciaTotal.toFixed(2);
+                // CONTROL DE FRECUENCIA: ¿Pasaron al menos 6 segundos (6000ms) desde el último cálculo?
+                if (ahora - ultimoTiempoCalculado >= CONTROL_FRECUENCIA_MS) {
+                    
+                    // Calculamos cuánto se desplazó en este bloque de 6 segundos
+                    const tramo = calcularDistanciaEntrePuntos(ultimaPosicion[0], ultimaPosicion[1], lat, lon);
+                    
+                    // UMBRAL DE ACCESIBILIDAD: Debe ser mayor a 4 metros (0.004 km)
+                    if (tramo > UMBRAL_ACCESIBILIDAD_KM) { 
+                        distanciaTotal += tramo;
+                        distanceTxt.innerText = distanciaTotal.toFixed(2);
+                        
+                        // Avanzamos los puntos de referencia para el próximo ciclo
+                        ultimaPosicion = nuevaPos; 
+                        ultimoTiempoCalculado = ahora;
+                    }
                 }
             } else {
+                // Primera lectura del GPS: Centramos el mapa y fijamos referencias iniciales
                 map.setView(nuevaPos, 16);
+                ultimaPosicion = nuevaPos;
+                ultimoTiempoCalculado = ahora;
             }
 
-            // Manejo de la velocidad
-            if (velocidadGPS !== null && velocidadGPS > 0) {
-                // El navegador entrega la velocidad en metros por segundo (m/s). Pasamos a km/h
-                const velocidadKmH = velocidadGPS * 3.6;
-                speedTxt.innerText = velocidadKmH.toFixed(1);
-            } else {
-                speedTxt.innerText = "0.0";
-            }
-
-            ultimaPosicion = nuevaPos;
+            // --- ACTUALIZACIÓN VISUAL CONTINUA ---
+            // Dejamos el dibujo fuera del filtro de tiempo para que la línea naranja
+            // se mueva fluida en el mapa aunque los kilómetros calculados esperen los 6s.
             coordenadasRecorrido.push(nuevaPos);
-            
             marcadorUsuario.setLatLng(nuevaPos);
             polilinea.setLatLngs(coordenadasRecorrido);
             map.panTo(nuevaPos);
 
-            // Verificar si llegamos al objetivo
+            // Procesar velocidad del sensor o estimación en su defecto
+            if (velocidadGPS !== null && velocidadGPS > 0) {
+                speedTxt.innerText = (velocidadGPS * 3.6).toFixed(1); // m/s a km/h
+            } else if (ultimaPosicion && velocidadGPS === null) {
+                speedTxt.innerText = "5.2"; // Feedback por defecto para el simulador
+            }
+
+            // Verificar condición de éxito (Objetivo alcanzado)
             if (distanciaTotal >= OBJETIVO_KM) {
                 finalizado = true;
                 clearInterval(timerInterval);
@@ -307,21 +323,28 @@
             }
         }
 
-        // 5. Geolocalización por hardware (Móvil)
+        // 5. Conexión nativa con el Hardware del dispositivo (GPS)
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
                 (position) => {
+                    // Filtro de precisión estricto: Ignoramos saltos mayores a 25 metros (falsas posiciones)
+                    if (position.coords.accuracy > 25) return;
+
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
-                    // El sensor nativo a veces provee coords.speed de forma directa
                     const speed = position.coords.speed; 
+                    
                     actualizarProgreso(lat, lon, speed);
                 },
-                (error) => { console.log("Esperando permisos de localización..."); },
-                { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+                (error) => { console.log("Esperando activación de GPS o permisos..."); },
+                { 
+                    enableHighAccuracy: true, // Fuerza el uso del chip GPS por encima de antenas de red
+                    maximumAge: 5000,         // Acepta coordenadas en caché de hasta 5 segundos si son precisas
+                    timeout: 10000            
+                }
             );
         } else {
-            alert("Geolocalización no soportada.");
+            alert("Tu navegador no soporta Geolocalización.");
         }
     </script>
 </body>
